@@ -1,0 +1,84 @@
+@import 'tailwindcss';
+
+:root {
+  color: #fef3c7;
+  background: #14110f;
+  font-family:
+    Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  font-synthesis: none;
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  min-width: 320px;
+  min-height: 100vh;
+  margin: 0;
+  background:
+    radial-gradient(circle at 15% 20%, rgba(127, 29, 29, 0.24), transparent 28rem),
+    linear-gradient(90deg, rgba(255, 255, 255, 0.025) 1px, transparent 1px),
+    linear-gradient(0deg, rgba(255, 255, 255, 0.018) 1px, transparent 1px),
+    linear-gradient(135deg, #211915 0%, #111111 55%, #1f1111 100%);
+  background-size:
+    auto,
+    42px 42px,
+    42px 42px,
+    auto;
+}
+
+button,
+input,
+select {
+  font: inherit;
+}
+
+.card-flip {
+  animation: card-rise 420ms ease both;
+  transform-origin: center bottom;
+}
+
+.execution-reveal {
+  animation: execution-drop 520ms ease both;
+}
+
+.execution-card {
+  animation: execution-mark 520ms ease both;
+}
+
+@keyframes card-rise {
+  from {
+    opacity: 0;
+    transform: translateY(12px) rotateX(18deg);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) rotateX(0deg);
+  }
+}
+
+@keyframes execution-drop {
+  from {
+    opacity: 0;
+    transform: translateY(-10px) scale(0.98);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+@keyframes execution-mark {
+  from {
+    filter: saturate(1);
+    transform: scale(1.02);
+  }
+  to {
+    filter: saturate(0.75);
+    transform: scale(1);
+  }
+}
