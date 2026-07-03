@@ -72,6 +72,7 @@ const playerNameFallback = () => `旅人${Math.floor(Math.random() * 900 + 100)}
 
 type RoleStat = { games: number; wins: number };
 type PlayerStats = { total: RoleStat; roles: Record<RoleId, RoleStat> };
+type InfoPageId = 'howToPlay' | 'terms' | 'privacy' | 'contact' | 'rules';
 
 const emptyRoleStat = (): RoleStat => ({ games: 0, wins: 0 });
 
@@ -101,6 +102,153 @@ const loadStats = (uid: string): PlayerStats => {
 const saveStats = (uid: string, stats: PlayerStats) => localStorage.setItem(statsKey(uid), JSON.stringify(stats));
 
 const rateText = (stat: RoleStat) => (stat.games === 0 ? '-' : `${Math.round((stat.wins / stat.games) * 100)}% (${stat.wins}/${stat.games})`);
+
+const infoPages: Record<InfoPageId, { title: string; sections: Array<{ heading: string; body: string[] }> }> = {
+  howToPlay: {
+    title: '遊び方',
+    sections: [
+      {
+        heading: '準備',
+        body: [
+          'ホストがルームを作成し、表示されたルームコードをDiscord通話中の参加者に共有します。',
+          '参加者はプレイヤー名とルームコードを入力して参加し、準備ができたらReadyを押します。',
+          'ホストは役職構成、議論時間、追加ルールを設定してゲームを開始します。',
+        ],
+      },
+      {
+        heading: 'ゲームの流れ',
+        body: [
+          'ゲーム開始後、各プレイヤーに本人だけが見られる役職カードが配られます。',
+          '夜フェーズでは占い師・人狼・怪盗など、能力を持つ役職だけが操作します。操作が終わったらスキップを押してください。',
+          '夜が明けたらDiscordで議論し、投票フェーズで処刑したい相手、または誰にも投票しない選択を行います。',
+          '全員の投票が終わると結果が公開され、最終役職、投票結果、勝敗、交換ログを確認できます。',
+        ],
+      },
+      {
+        heading: '快適に遊ぶコツ',
+        body: [
+          '通話はDiscord、本サービスはカード配布と進行管理に使います。',
+          'スマートフォンでは画面を縦向きにして、役職確認や投票操作を行うと遊びやすくなります。',
+          '動作確認や少人数テストにはCPU追加機能を利用できます。',
+        ],
+      },
+    ],
+  },
+  terms: {
+    title: '利用規約',
+    sections: [
+      {
+        heading: '本サービスについて',
+        body: [
+          '本サービスは、Discordなどの外部音声通話と併用してワンナイト人狼を遊ぶためのWebアプリです。',
+          '本サービスは予告なく機能の追加、変更、停止を行う場合があります。',
+        ],
+      },
+      {
+        heading: '禁止事項',
+        body: [
+          '不正アクセス、過度な連続操作、サーバーやデータベースへ負荷をかける行為を禁止します。',
+          '他の利用者への嫌がらせ、なりすまし、公序良俗に反する名前や発言への利用を禁止します。',
+          '本サービスの不具合を利用して、他プレイヤーの秘匿情報を意図的に取得しようとする行為を禁止します。',
+        ],
+      },
+      {
+        heading: '免責事項',
+        body: [
+          '本サービスの利用により発生した損害、通信障害、データ消失、ゲーム進行上のトラブルについて、運営者は責任を負いません。',
+          'ゲームの進行や勝敗判定には十分注意していますが、必ずしも完全な正確性を保証するものではありません。',
+        ],
+      },
+    ],
+  },
+  privacy: {
+    title: 'プライバシーポリシー',
+    sections: [
+      {
+        heading: '取得する情報',
+        body: [
+          '本サービスでは、匿名ログインID、入力されたプレイヤー名、ルーム情報、ゲーム進行情報、投票情報、役職情報をゲーム進行のために保存します。',
+          'スタッツ情報は、お使いのブラウザ内のローカルストレージに保存されます。',
+          'お問い合わせ時には、送信元メールアドレスとお問い合わせ内容を確認します。',
+        ],
+      },
+      {
+        heading: '利用目的',
+        body: [
+          '取得した情報は、ルーム作成、参加、リアルタイム同期、ゲーム進行、結果表示、スタッツ表示のために利用します。',
+          'サービス改善、不具合調査、迷惑行為対策のために必要な範囲で利用する場合があります。',
+        ],
+      },
+      {
+        heading: '広告と外部サービス',
+        body: [
+          '今後、広告配信サービスを導入する場合があります。広告配信事業者がCookie等を利用して広告を表示することがあります。',
+          '本サービスではSupabaseを利用して認証とデータ同期を行います。',
+        ],
+      },
+      {
+        heading: 'データの管理',
+        body: [
+          'ルームデータやゲームデータは、サービス運営上必要な範囲で保存されます。',
+          'ブラウザに保存されたスタッツは、ブラウザのサイトデータ削除により消去できます。',
+        ],
+      },
+    ],
+  },
+  contact: {
+    title: 'お問い合わせ',
+    sections: [
+      {
+        heading: '連絡先',
+        body: [
+          '不具合報告、機能要望、広告や運営に関するお問い合わせは、以下のメールアドレスまでご連絡ください。',
+          'h1320000819@gmail.com',
+        ],
+      },
+      {
+        heading: 'お問い合わせ時のお願い',
+        body: [
+          '不具合報告の場合は、発生した画面、ルームの状態、操作手順、使用端末やブラウザを分かる範囲で記載してください。',
+          '返信には時間がかかる場合があります。あらかじめご了承ください。',
+        ],
+      },
+    ],
+  },
+  rules: {
+    title: 'ワンナイト人狼のルール説明',
+    sections: [
+      {
+        heading: '基本ルール',
+        body: [
+          '各ゲームでは、プレイヤー人数に2枚を加えた枚数の役職カードを使います。配られなかった2枚は中央カードになります。',
+          '夜フェーズで役職ごとの能力を処理した後、朝になり、全員で議論します。',
+          '議論後に全員が同時に投票し、最多得票者が処刑されます。同票の人数が多い場合は誰も処刑されないことがあります。',
+        ],
+      },
+      {
+        heading: '役職',
+        body: [
+          '村人: 特殊能力はありません。会話から人狼を探します。',
+          '人狼: 仲間の人狼を確認します。設定がオンの場合、単独人狼は中央カードを1枚確認できます。',
+          '占い師: 他プレイヤー1人の役職を見るか、中央カード2枚を見るかを選べます。',
+          '怪盗: 他プレイヤー1人と役職カードを交換し、交換後の自分の役職を確認します。交換相手は交換されたことを知りません。',
+          '狂人: 人狼陣営です。人狼が勝つように議論を誘導します。',
+          'てるてる: 処刑されることが勝利条件です。',
+        ],
+      },
+      {
+        heading: '勝敗',
+        body: [
+          '人狼が1人でも処刑された場合、村人陣営の勝利です。',
+          '人狼が存在し、誰も人狼が処刑されなかった場合、人狼陣営の勝利です。',
+          '人狼が場にいない平和村で誰も処刑されなければ、村人陣営の勝利です。',
+          '人狼が場にいない平和村で誰かを処刑した場合、通常ルールでは全員負けです。',
+          '殉教者モードがオンの平和村では、処刑されたプレイヤーが勝利します。誰も処刑されなかった場合は全員負けです。',
+        ],
+      },
+    ],
+  },
+};
 
 const recordResultStats = (uid: string, room: Room) => {
   const result = room.result;
@@ -173,7 +321,9 @@ const TopScreen = ({ uid, onEnter }: { uid: string; onEnter: (code: string) => v
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
   const [statsOpen, setStatsOpen] = useState(false);
+  const [infoPage, setInfoPage] = useState<InfoPageId | undefined>();
   const stats = loadStats(uid);
+  const activeInfoPage = infoPage ? infoPages[infoPage] : undefined;
 
   const rememberName = () => localStorage.setItem('playerName', name.trim() || playerNameFallback());
 
@@ -232,7 +382,19 @@ const TopScreen = ({ uid, onEnter }: { uid: string; onEnter: (code: string) => v
           <Button className="w-full" variant="secondary" onClick={() => setStatsOpen(true)}>
             <BarChart3 size={18} /> スタッツ
           </Button>
-          {error && <p className="rounded-lg border border-red-700/40 bg-red-950/60 p-3 text-sm font-bold text-red-100">{error}</p>}
+          <div className="grid grid-cols-2 gap-2">
+            {([
+              ['howToPlay', '遊び方'],
+              ['rules', 'ルール説明'],
+              ['terms', '利用規約'],
+              ['privacy', 'プライバシー'],
+              ['contact', 'お問い合わせ'],
+            ] as Array<[InfoPageId, string]>).map(([id, label]) => (
+              <Button key={id} className={id === 'contact' ? 'col-span-2' : undefined} variant="ghost" onClick={() => setInfoPage(id)}>
+                {label}
+              </Button>
+            ))}
+          </div>          {error && <p className="rounded-lg border border-red-700/40 bg-red-950/60 p-3 text-sm font-bold text-red-100">{error}</p>}
           <div className="grid grid-cols-[1fr_auto] gap-2">
             <input
               className="rounded-lg border border-amber-800/40 bg-stone-950 px-3 py-3 text-center text-lg font-black uppercase tracking-[0.25em] text-amber-50 outline-none focus:border-red-600"
@@ -264,6 +426,28 @@ const TopScreen = ({ uid, onEnter }: { uid: string; onEnter: (code: string) => v
                       <span>{stats.roles[role.id].games}戦</span>
                       <span>{rateText(stats.roles[role.id])}</span>
                     </div>
+                  ))}
+                </div>
+              </Panel>
+            </div>
+          )}
+          {activeInfoPage && (
+            <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4">
+              <Panel className="max-h-[85dvh] w-full max-w-3xl space-y-5 overflow-y-auto">
+                <div className="flex items-center justify-between gap-3">
+                  <h2 className="text-2xl font-black text-amber-50">{activeInfoPage.title}</h2>
+                  <Button variant="ghost" onClick={() => setInfoPage(undefined)}>閉じる</Button>
+                </div>
+                <div className="space-y-5">
+                  {activeInfoPage.sections.map((section) => (
+                    <section key={section.heading} className="rounded-lg border border-amber-800/30 bg-stone-900/70 p-4">
+                      <h3 className="text-lg font-black text-amber-50">{section.heading}</h3>
+                      <div className="mt-3 space-y-2">
+                        {section.body.map((line) => (
+                          <p key={line} className="text-sm leading-7 text-amber-100/85">{line}</p>
+                        ))}
+                      </div>
+                    </section>
                   ))}
                 </div>
               </Panel>
