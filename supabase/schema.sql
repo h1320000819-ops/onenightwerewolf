@@ -68,6 +68,62 @@ $$;
 grant execute on function public.is_room_participant(text) to authenticated;
 grant execute on function public.is_room_host(text) to authenticated;
 
+create or replace function public.join_room(target_code text, player_name text)
+returns jsonb
+language plpgsql
+security definer
+set search_path = public
+as $$
+declare
+  room_row public.rooms%rowtype;
+  actor_uid text := auth.uid()::text;
+  safe_code text := upper(trim(target_code));
+  next_data jsonb;
+  existing_player jsonb;
+  new_player jsonb;
+begin
+  if auth.uid() is null then
+    raise exception 'not authenticated';
+  end if;
+
+  select *
+  into room_row
+  from public.rooms
+  where code = safe_code
+  for update;
+
+  if not found then
+    raise exception 'room not found';
+  end if;
+
+  existing_player := room_row.data #> array['players', actor_uid];
+  if existing_player is not null then
+    return room_row.data;
+  end if;
+
+  if room_row.data ->> 'phase' <> 'lobby' then
+    raise exception 'room already started';
+  end if;
+
+  new_player := jsonb_build_object(
+    'uid', actor_uid,
+    'name', coalesce(nullif(trim(player_name), ''), 'Player'),
+    'isHost', false,
+    'isReady', false,
+    'joinedAt', floor(extract(epoch from clock_timestamp()) * 1000)::bigint
+  );
+  next_data := jsonb_set(room_row.data, array['players', actor_uid], new_player, true);
+
+  update public.rooms
+  set data = next_data
+  where code = room_row.code;
+
+  return next_data;
+end;
+$$;
+
+grant execute on function public.join_room(text, text) to authenticated;
+
 drop policy if exists "participants can read rooms" on public.rooms;
 create policy "participants can read rooms"
 on public.rooms for select

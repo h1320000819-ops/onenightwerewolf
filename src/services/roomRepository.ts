@@ -1,4 +1,4 @@
-import type { RealtimeChannel } from '@supabase/supabase-js';
+﻿import type { RealtimeChannel } from '@supabase/supabase-js';
 import {
   applyNightActions,
   buildSeenInfo,
@@ -140,15 +140,16 @@ export const createRoom = async (uid: string, name: string) => {
   return code;
 };
 
-export const joinRoom = async (code: string, uid: string, name: string) => {
-  const room = await fetchRoom(code);
-  if (!room) throw new Error('ルームが見つかりません。');
-  if (room.phase !== 'lobby' && !room.players[uid]) throw new Error('開始済みのルームには新規参加できません。');
-
-  const player: Player = { uid, name, isHost: room.hostUid === uid, isReady: false, joinedAt: Date.now() };
-  await saveRoom({ ...room, players: { ...room.players, [uid]: room.players[uid] ?? player } });
+export const joinRoom = async (code: string, _uid: string, name: string) => {
+  const { error } = await supabase.rpc('join_room', {
+    target_code: upperCode(code),
+    player_name: name,
+  });
+  if (error?.code === '42883') {
+    throw new Error('Supabaseの参加用関数が未設定です。supabase/schema.sql をSQL Editorで再実行してください。');
+  }
+  if (error) throw error;
 };
-
 export const setReady = async (code: string, uid: string, ready: boolean) => {
   const room = await fetchRoom(code);
   if (!room || !room.players[uid]) return;
