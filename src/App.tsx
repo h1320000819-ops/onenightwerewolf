@@ -33,6 +33,19 @@ const durationOptions: Array<{ label: string; value: DiscussionDuration }> = [
   { label: '無制限', value: 0 },
 ];
 
+const roleCountOptions: Array<{ roleId: Exclude<RoleId, 'villager'>; label: string; options: number[] }> = [
+  { roleId: 'werewolf', label: '人狼', options: [1, 2, 3] },
+  { roleId: 'seer', label: '占い師', options: [1, 2, 3] },
+  { roleId: 'robber', label: '怪盗', options: [1, 2] },
+  { roleId: 'minion', label: '狂人', options: [0, 2, 3] },
+  { roleId: 'tanner', label: 'てるてる', options: [0, 1, 2] },
+];
+
+const withAutoVillagers = (counts: RoleCounts, requiredDeckSize: number): RoleCounts => {
+  const fixedRoleTotal = roleCountOptions.reduce((sum, option) => sum + (counts[option.roleId] ?? 0), 0);
+  return { ...counts, villager: Math.max(0, requiredDeckSize - fixedRoleTotal) };
+};
+
 const ROLE_IMAGES: Partial<Record<keyof typeof ROLE_DEFINITIONS, string>> = {
   villager: '/roles/villager.png',
   werewolf: '/roles/werewolf.png',
@@ -278,8 +291,11 @@ const LobbyScreen = ({ room, uid, players }: { room: Room; uid: string; players:
     setMartyrMode(room.settings.martyrMode === true);
   }, [room.settings]);
 
-  const deckSize = Object.values(counts).reduce((sum, value) => sum + value, 0);
   const requiredDeckSize = players.length + 2;
+  const autoCounts = withAutoVillagers(counts, requiredDeckSize);
+  const deckSize = Object.values(autoCounts).reduce((sum, value) => sum + value, 0);
+  const fixedRoleTotal = roleCountOptions.reduce((sum, option) => sum + (counts[option.roleId] ?? 0), 0);
+  const roleSelectionIsValid = fixedRoleTotal <= requiredDeckSize;
 
   const runLobbyAction = async (action: () => Promise<void>) => {
     setError('');
@@ -290,7 +306,7 @@ const LobbyScreen = ({ room, uid, players }: { room: Room; uid: string; players:
     }
   };
 
-  const saveSettings = () => runLobbyAction(() => updateSettings(room.code, duration, counts, players.length, soloWerewolfCanPeekCenter, martyrMode));
+  const saveSettings = () => runLobbyAction(() => updateSettings(room.code, duration, autoCounts, players.length, soloWerewolfCanPeekCenter, martyrMode));
 
   return (
     <div className="mx-auto grid w-full max-w-6xl gap-4 px-4 py-6 lg:grid-cols-[1fr_360px]">
@@ -334,7 +350,7 @@ const LobbyScreen = ({ room, uid, players }: { room: Room; uid: string; players:
             <Check size={18} /> {currentPlayer?.isReady ? 'Ready解除' : 'Ready'}
           </Button>
           {isHost && (
-            <Button disabled={!allReady || deckSize !== requiredDeckSize} onClick={() => runLobbyAction(() => startGame(room))}>
+            <Button disabled={!allReady || !roleSelectionIsValid || deckSize !== requiredDeckSize} onClick={() => runLobbyAction(() => startGame(room))}>
               <Moon size={18} /> ゲーム開始
             </Button>
           )}
@@ -391,24 +407,46 @@ const LobbyScreen = ({ room, uid, players }: { room: Room; uid: string; players:
             <span className="mt-1 block text-xs font-normal text-amber-100/65">オンの時、平和村では処刑されたプレイヤーが勝利します。</span>
           </span>
         </label>
-        <div className="space-y-2">
-          {roleList.map((role) => (
-            <div key={role.id} className="grid grid-cols-[1fr_auto] items-center gap-3">
-              <span className="text-sm font-bold text-amber-100">{role.name}</span>
-              <input
-                type="number"
-                min={0}
-                max={6}
-                disabled={!isHost}
-                className="w-20 rounded-lg border border-amber-800/40 bg-stone-950 px-3 py-2 text-center font-bold text-amber-50"
-                value={counts[role.id]}
-                onChange={(event) => setCounts({ ...counts, [role.id]: Number(event.target.value) })}
-              />
+        <div className="space-y-3">
+          {roleCountOptions.map((option) => (
+            <div key={option.roleId} className="grid gap-2 rounded-lg border border-amber-800/30 bg-stone-900/60 p-3">
+              <div className="flex items-center justify-between gap-3">
+                <span className="text-sm font-bold text-amber-100">{option.label}</span>
+                <span className="text-xs font-bold text-amber-200/70">{counts[option.roleId]}人</span>
+              </div>
+              <div className="grid grid-cols-3 gap-2">
+                {option.options.map((value) => (
+                  <button
+                    key={value}
+                    type="button"
+                    disabled={!isHost}
+                    className={cn(
+                      'rounded-lg border px-3 py-2 text-sm font-black transition',
+                      counts[option.roleId] === value
+                        ? 'border-red-500 bg-red-950 text-amber-50 shadow-[0_0_18px_rgba(127,29,29,0.45)]'
+                        : 'border-amber-800/30 bg-stone-950 text-amber-100 hover:bg-stone-800',
+                      !isHost && 'opacity-70',
+                    )}
+                    onClick={() => setCounts(withAutoVillagers({ ...counts, [option.roleId]: value }, requiredDeckSize))}
+                  >
+                    {value}人
+                  </button>
+                ))}
+              </div>
             </div>
           ))}
+          <div className="flex items-center justify-between rounded-lg border border-amber-800/30 bg-stone-950/80 p-3">
+            <span className="text-sm font-bold text-amber-100">村人</span>
+            <span className="text-lg font-black text-amber-50">{autoCounts.villager}人</span>
+          </div>
+          {!roleSelectionIsValid && (
+            <p className="rounded-lg border border-red-700/40 bg-red-950/60 p-3 text-sm font-bold text-red-100">
+              選択した役職カードが必要枚数を超えています。人数を減らしてください。
+            </p>
+          )}
         </div>
         {isHost && (
-          <Button className="w-full" variant="secondary" onClick={saveSettings}>
+          <Button className="w-full" variant="secondary" disabled={!roleSelectionIsValid} onClick={saveSettings}>
             設定を反映
           </Button>
         )}

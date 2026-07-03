@@ -31,6 +31,11 @@ export const ensureDeckSize = (counts: RoleCounts, playerCount: number) => roles
 
 export const normalizeRoleCounts = (counts: RoleCounts, playerCount: number): RoleCounts => {
   const next = { ...counts };
+  const requiredDeckSize = playerCount + 2;
+  const fixedRoleTotal = (next.werewolf ?? 0) + (next.seer ?? 0) + (next.robber ?? 0) + (next.minion ?? 0) + (next.tanner ?? 0);
+  next.villager = Math.max(0, requiredDeckSize - fixedRoleTotal);
+  if (fixedRoleTotal <= requiredDeckSize) return next;
+
   const reductionOrder: RoleId[] = ['villager', 'tanner', 'minion', 'robber', 'seer', 'werewolf'];
   while (rolesFromCounts(next).length < playerCount + 2) next.villager += 1;
   while (rolesFromCounts(next).length > playerCount + 2) {
