@@ -18,6 +18,7 @@ import {
   setReady,
   skipNightAction,
   startGame,
+  startNextGame,
   startVote,
   submitNightAction,
   submitCpuVotes,
@@ -37,7 +38,7 @@ const roleCountOptions: Array<{ roleId: Exclude<RoleId, 'villager'>; label: stri
   { roleId: 'werewolf', label: '人狼', options: [1, 2, 3] },
   { roleId: 'seer', label: '占い師', options: [1, 2, 3] },
   { roleId: 'robber', label: '怪盗', options: [1, 2] },
-  { roleId: 'minion', label: '狂人', options: [0, 2, 3] },
+  { roleId: 'minion', label: '狂人', options: [0, 1, 2, 3] },
   { roleId: 'tanner', label: 'てるてる', options: [0, 1, 2] },
 ];
 
@@ -816,7 +817,12 @@ const ResultScreen = ({ room, uid }: GameProps) => {
         {result.exchangeLogs.length ? result.exchangeLogs.map((log) => (
           <p key={log.order} className="text-amber-100">{roleName(log.roleId)} → {nameOf(log.actorUid)} ⇔ {nameOf(log.targetUid)}</p>
         )) : <p className="text-amber-100/70">交換はありません。</p>}
-        {room.hostUid === uid && <Button variant="secondary" onClick={() => resetRoom(room)}><RotateCcw size={18} /> 待機室へ</Button>}
+        {room.hostUid === uid && (
+          <div className="grid gap-2">
+            <Button onClick={() => startNextGame(room)}><Play size={18} /> 次のゲーム</Button>
+            <Button variant="secondary" onClick={() => resetRoom(room)}><RotateCcw size={18} /> 待機室へ</Button>
+          </div>
+        )}
       </Panel>
     </main>
   );

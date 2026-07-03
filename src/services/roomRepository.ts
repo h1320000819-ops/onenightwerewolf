@@ -306,6 +306,19 @@ export const resetRoom = async (room: Room) => {
   await saveRoom({ ...room, phase: 'lobby', nightDone: {}, votes: {}, result: undefined });
 };
 
+export const startNextGame = async (room: Room) => {
+  await supabase.from('private_states').delete().eq('room_code', room.code);
+  await startGame({
+    ...room,
+    nightDone: {},
+    votes: {},
+    result: undefined,
+    startedAt: undefined,
+    discussionStartedAt: undefined,
+    voteStartedAt: undefined,
+  });
+};
+
 export const leaveRoom = async (room: Room, uid: string) => {
   await supabase.from('private_states').delete().eq('room_code', room.code).eq('uid', uid);
   const players = { ...room.players };
